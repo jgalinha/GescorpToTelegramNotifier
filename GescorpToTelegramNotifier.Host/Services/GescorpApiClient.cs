@@ -1,18 +1,10 @@
 ﻿using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using GescorpToTelegramNotifier.Host.Dtos;
 using Microsoft.Extensions.Caching.Memory;
+using GescorpToTelegramNotifier.Host.Dtos.Incident;
 
-namespace GescorpToTelegramNotifier.Host.Services
-{
+namespace GescorpToTelegramNotifier.Host.Services {
     public sealed class GescorpApiClient {
         private readonly IGescorpApi _api;
         private readonly ILogger<GescorpApiClient> _logger;
@@ -32,13 +24,32 @@ namespace GescorpToTelegramNotifier.Host.Services
                                                    _options.ApiVersion);
         }
 
-        public async Task AuthenticationAsync() {
-            const string cacheKey = "AuthenticationData";
+        public async Task GetIncidentByIdAsync(string id) {
+            await AuthenticationAsync();
+            var incident = await _api.GetIncidentsAsync("incidents_list", id, id, _accessKey);
+        }
 
+        public async Task<IncidentsDto> GetIncidentsAsync(string method = "incidents_list", DateOnly? dateFrom = null, DateOnly? dateTo = null) {
+            await AuthenticationAsync();
+            if (!dateFrom.HasValue) {
+                dateFrom = DateOnly.FromDateTime(DateTime.Now);
+            }
+            if (!dateTo.HasValue) {
+                dateTo = DateOnly.FromDateTime(DateTime.Now);
+            }
+            var date = DateOnly.FromDateTime(DateTime.Now);
+            var incidents = await _api.GetIncidentsAsync(method, dateFrom.ToString(), dateTo.ToString(), _accessKey);
+
+            return incidents;
+        }
+
+        private async Task AuthenticationAsync() {
+            const string cacheKey = "AuthenticationData";
             if (!_memoryCache.TryGetValue(cacheKey, out _)) {
                 var authResponse = await GetAuthenticationResponseAsync();
 
                 if (authResponse?.authentication != null) {
+                    
                     SetAuthenticationData(authResponse, cacheKey);
                 } else {
                     _logger.LogError("Authentication response or authentication data is null");

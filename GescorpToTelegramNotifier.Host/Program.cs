@@ -30,5 +30,5 @@ using IHost host = Host.CreateDefaultBuilder(args)
     .Build();
 
 var gescorpApiClient = host.Services.GetRequiredService<GescorpApiClient>();
-await gescorpApiClient.AuthenticationAsync();
-await gescorpApiClient.AuthenticationAsync();
+var incident = await gescorpApiClient.GetIncidentsAsync();
+Console.ReadKey();
